@@ -1,7 +1,7 @@
 import os
 
 # nomes dos arquivos na ordem desejada
-arquivos = ["creation.sql", "insertion.sql", "queries.sql", "functions.sql"]
+arquivos = ["creation.sql", "insertion.sql", "queries.sql", "functions.sql", "triggers.sql"]
 saida = "unified.sql"
 
 with open(saida, "w", encoding="utf-8") as outfile:

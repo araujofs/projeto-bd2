@@ -851,24 +851,20 @@ from
   encomenda_sete_dias;
 
 -- 2 consultas usando Group By (e possivelmente o having)
--- Consulta para um morador saber quantas encomendas recebeu nos últimos 30 dias
+-- Consulta para um morador saber quantas encomendas recebeu em um intervalo de tempo
 select
   m.nome,
-  (
-    select
-      count(*)
-    from
-      encomenda
-    where
-      morador_id_destino = m.id
-      and porteiro_recebe_data >= (now() - interval '30 days')
-  ) as quantidade_encomendas
+  count(e.id) as quantidade_encomendas
 from
   morador m
+  join encomenda e on e.morador_id_destino = m.id
 where
-  m.cpf = '11111111111';
+  m.cpf = '22222222222'
+  and porteiro_recebe_data >= (now() - interval '30 days')
+group by
+  m.id;
 
--- Consulta para saber quantas encomendas foram recebidas de cada apartamento nos ultimos 15 dias
+-- Consulta para saber quantas encomendas foram recebidas de cada apartamento em um intervalo determinado de tempo
 select
   a.numero || a.bloco as apartamento,
   count(e.id) as quantidade_encomendas
@@ -882,7 +878,7 @@ group by
   a.id;
 
 -- 1 consulta usando alguma operação de conjunto (union, except ou intersect)
--- Consulta para saber todos os moradores juntamente com hóspedes do condomínio cadastrados
+-- Consulta para exibir todos os moradores juntamente com hóspedes do condomínio cadastrados
 select
   nome,
   email
@@ -953,6 +949,7 @@ where
 
 /* Views */
 -- 1 que permita inserção
+-- View para visualizar os pares autorizador-autorizado de maneira mais simples, dado que essa operação envolve dois joins
 create or replace view
   morador_hospede_autorizacoes as
 select
@@ -968,8 +965,7 @@ order by
   m.nome;
 
 create
-or replace function insert_view_morador_hospede()
-returns trigger as $$
+or replace function insert_view_morador_hospede () returns trigger as $$
 begin
   if (select nome from morador where id = new.morador_id) is null then
     raise exception 'Morador não encontrado com id: %', new.morador_id;
@@ -985,11 +981,11 @@ begin
 end;
 $$ language plpgsql;
 
-create trigger trg_ins_view_morador_hospede_autorizacoes
-instead of insert on morador_hospede_autorizacoes
-for each row
-execute function insert_view_morador_hospede();
+create trigger trg_ins_view_morador_hospede_autorizacoes instead of insert on morador_hospede_autorizacoes for each row
+execute function insert_view_morador_hospede ();
+
 -- 2 visões robustas (e.g., com vários joins) com justificativa semântica, de acordo com os requisitos da aplicação.
+-- View para visualizar algumas informações do usuário e do seu apartamento, como quantidade de hóspedes e também a quantidade de encomendas ainda para serem pegas
 create or replace view
   morador_apartamento as
 select
@@ -1019,6 +1015,7 @@ from
   morador m
   join apartamento ap on m.apartamento_id = ap.id;
 
+-- View para visualizar informações sobre encomenda e também de seu morador e apartamento de destino
 create or replace view
   encomenda_destino as
 select
